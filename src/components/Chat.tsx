@@ -1,17 +1,35 @@
 import React, {useContext, useState} from 'react';
 import {Context} from "../index";
 import {useAuthState} from "react-firebase-hooks/auth";
-import {Button, Container, Grid, TextField} from "@material-ui/core";
+import {Avatar, Button, Container, Grid, TextField} from "@material-ui/core";
+import { collection, setDoc, doc } from "firebase/firestore";
+import {useCollectionData} from "react-firebase-hooks/firestore";
+import Loader from "./Loader";
 
 const Chat = () => {
 
-    const {auth} = useContext(Context)
+    const {auth, firestore} = useContext(Context)
     const [user] = useAuthState(auth)
     const [value, setValue] = useState('')
-   // const [message, loading] = useCollectiondata()
+    const [messages, loading] = useCollectionData(
+        collection(firestore,'messages')
+
+    )
 
     const sendMessage = async () => {
-        console.log(value)
+        // collection(firestore,'messages').
+        setDoc(doc(firestore,'messages'),{
+            uid: user.uid,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            text: value,
+            createdAt: firestore.FieldValue.serverTimestamp()
+        })
+        setValue('')
+    }
+
+    if(loading) {
+        return <Loader/>
     }
 
     return (
@@ -24,7 +42,23 @@ const Chat = () => {
                     width: "80%", height: "65vh", border: "2px solid blue",
                     overflowY: "auto", borderRadius: "5px"
                 }}>
-
+                    {messages?.map(message =>
+                    <div
+                        key={message.uid}
+                        style={{
+                        margin: 10,
+                        border: user.uid === message.uid ? '2px solid green' : '2px solid red',
+                        marginLeft: user.uid === message.uid ? 'auto' : '10px',
+                        width: 'fit-content',
+                        padding: 5
+                    }}>
+                        <Grid container>
+                            <Avatar  src={message.photoURL}/>
+                            <div>{message.displayName}</div>
+                        </Grid>
+                        {message.text}
+                    </div>
+                    )}
                 </div>
                 <Grid
                     container
@@ -51,3 +85,4 @@ const Chat = () => {
 };
 
 export default Chat;
+
